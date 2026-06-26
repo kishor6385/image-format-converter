@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpenCV Image Read/Write</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --surface: #121a2b;
+      --surface-2: #1a2438;
+      --border: #2a3650;
+      --text: #e8edf7;
+      --muted: #93a0bb;
+      --accent: #3ecf8e;
+      --accent-2: #5b8def;
+      --danger: #ff6b7a;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(62, 207, 142, 0.18), transparent),
+        radial-gradient(ellipse 60% 40% at 100% 0%, rgba(91, 141, 239, 0.12), transparent),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      background: rgba(62, 207, 142, 0.12);
+      border: 1px solid rgba(62, 207, 142, 0.35);
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.75rem;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 1.1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .panel-body { padding: 1.25rem; }
+
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 2rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: var(--surface-2);
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(62, 207, 142, 0.06);
+    }
+
+    .dropzone-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .dropzone p { color: var(--muted); font-size: 0.9rem; }
+    .dropzone strong { color: var(--text); }
+
+    #file-input { display: none; }
+
+    .btn-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin-top: 1rem;
+    }
+
+    button, .btn {
+      appearance: none;
+      border: none;
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, opacity 0.15s, box-shadow 0.15s;
+    }
+
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #2db87a);
+      color: #04120b;
+      box-shadow: 0 8px 24px rgba(62, 207, 142, 0.25);
+    }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, var(--accent-2), #4a74d4);
+      color: white;
+      box-shadow: 0 8px 24px rgba(91, 141, 239, 0.25);
+    }
+
+    label.field {
+      display: block;
+      margin-top: 1.1rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    select, input[type="range"] {
+      width: 100%;
+      margin-top: 0.45rem;
+    }
+
+    select {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.75rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+
+    .quality-value {
+      float: right;
+      color: var(--accent);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.85rem;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .meta-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.85rem;
+    }
+
+    .meta-card span {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .meta-card strong {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.88rem;
+      word-break: break-all;
+    }
+
+    .preview-area {
+      min-height: 420px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding: 1.25rem;
+    }
+
+    @media (max-width: 700px) {
+      .preview-area { grid-template-columns: 1fr; }
+    }
+
+    .preview-card {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .preview-card header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-align: left;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .preview-frame {
+      flex: 1;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background:
+        linear-gradient(45deg, #1c2638 25%, transparent 25%),
+        linear-gradient(-45deg, #1c2638 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #1c2638 75%),
+        linear-gradient(-45deg, transparent 75%, #1c2638 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+      background-color: #151d2c;
+    }
+
+    .preview-frame img {
+      max-width: 100%;
+      max-height: 340px;
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+    }
+
+    .placeholder {
+      text-align: center;
+      color: var(--muted);
+      padding: 2rem;
+    }
+
+    .placeholder .icon { font-size: 2.5rem; opacity: 0.5; margin-bottom: 0.5rem; }
+
+    .status-bar {
+      padding: 0.85rem 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.88rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .status-bar.success { color: var(--accent); }
+    .status-bar.error { color: var(--danger); }
+
+    .steps {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .step.active { color: var(--text); }
+    .step.active .step-num {
+      background: rgba(62, 207, 142, 0.15);
+      border-color: var(--accent);
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <div class="badge">OpenCV + Python</div>
+      <h1>Image Read / Write</h1>
+      <p class="subtitle">
+        Load an image, preview it instantly, and save it in a different format.
+        A hands-on lab for mastering basic image I/O.
+      </p>
+    </header>
+
+    <div class="steps">
+      <div class="step active" id="step-1"><span class="step-num">1</span> Load</div>
+      <div class="step" id="step-2"><span class="step-num">2</span> Preview</div>
+      <div class="step" id="step-3"><span class="step-num">3</span> Convert &amp; Save</div>
+    </div>
+
+    <div class="layout">
+      <aside class="panel">
+        <div class="panel-header">Controls</div>
+        <div class="panel-body">
+          <div class="dropzone" id="dropzone">
+            <div class="dropzone-icon">&#128444;</div>
+            <p><strong>Drop an image here</strong><br />or click to browse</p>
+            <p style="margin-top:0.5rem;font-size:0.8rem;">PNG, JPG, BMP, TIFF, WebP</p>
+          </div>
+          <input type="file" id="file-input" accept="image/*" />
+
+          <div class="btn-row">
+            <button class="btn-secondary" id="btn-sample" type="button">Use sample image</button>
+            <button class="btn-primary" id="btn-convert" type="button" disabled>Convert image</button>
+            <button class="btn-accent hidden" id="btn-download" type="button">Download converted file</button>
+          </div>
+
+          <label class="field" for="format-select">Output format</label>
+          <select id="format-select">
+            {% for fmt in formats %}
+            <option value="{{ fmt }}" {% if fmt == 'png' %}selected{% endif %}>{{ fmt | upper }}</option>
+            {% endfor %}
+          </select>
+
+          <label class="field" for="quality-range">
+            Quality (JPEG / WebP)
+            <span class="quality-value" id="quality-label">95</span>
+          </label>
+          <input type="range" id="quality-range" min="10" max="100" value="95" />
+
+          <div class="meta-grid hidden" id="meta-grid">
+            <div class="meta-card"><span>Source</span><strong id="meta-source">-</strong></div>
+            <div class="meta-card"><span>Dimensions</span><strong id="meta-dimensions">-</strong></div>
+            <div class="meta-card"><span>Channels</span><strong id="meta-channels">-</strong></div>
+            <div class="meta-card"><span>Depth</span><strong id="meta-depth">-</strong></div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="panel">
+        <div class="panel-header">Live Preview</div>
+        <div class="preview-area">
+          <div class="preview-card">
+            <header>Original (loaded)</header>
+            <div class="preview-frame" id="original-frame">
+              <div class="placeholder" id="original-placeholder">
+                <div class="icon">&#128247;</div>
+                <p>Upload or load the sample image to begin</p>
+              </div>
+              <img id="original-img" class="hidden" alt="Original preview" />
+            </div>
+          </div>
+          <div class="preview-card">
+            <header>Converted (output)</header>
+            <div class="preview-frame" id="converted-frame">
+              <div class="placeholder" id="converted-placeholder">
+                <div class="icon">&#128190;</div>
+                <p>Converted image will appear here</p>
+              </div>
+              <img id="converted-img" class="hidden" alt="Converted preview" />
+            </div>
+          </div>
+        </div>
+        <div class="status-bar" id="status-bar">Ready. Load an image to get started.</div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      imageB64: null,
+      filename: "image",
+      converted: null,
+    };
+
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("file-input");
+    const btnSample = document.getElementById("btn-sample");
+    const btnConvert = document.getElementById("btn-convert");
+    const btnDownload = document.getElementById("btn-download");
+    const formatSelect = document.getElementById("format-select");
+    const qualityRange = document.getElementById("quality-range");
+    const qualityLabel = document.getElementById("quality-label");
+    const statusBar = document.getElementById("status-bar");
+    const metaGrid = document.getElementById("meta-grid");
+
+    const originalImg = document.getElementById("original-img");
+    const originalPlaceholder = document.getElementById("original-placeholder");
+    const convertedImg = document.getElementById("converted-img");
+    const convertedPlaceholder = document.getElementById("converted-placeholder");
+
+    function setStatus(message, type = "") {
+      statusBar.textContent = message;
+      statusBar.className = "status-bar" + (type ? ` ${type}` : "");
+    }
+
+    function setStep(n) {
+      [1, 2, 3].forEach((i) => {
+        document.getElementById(`step-${i}`).classList.toggle("active", i <= n);
+      });
+    }
+
+    function showOriginal(src) {
+      originalImg.src = src;
+      originalImg.classList.remove("hidden");
+      originalPlaceholder.classList.add("hidden");
+    }
+
+    function showConverted(src) {
+      convertedImg.src = src;
+      convertedImg.classList.remove("hidden");
+      convertedPlaceholder.classList.add("hidden");
+    }
+
+    function resetConverted() {
+      convertedImg.classList.add("hidden");
+      convertedPlaceholder.classList.remove("hidden");
+      btnDownload.classList.add("hidden");
+      state.converted = null;
+    }
+
+    function fillMeta(info) {
+      document.getElementById("meta-source").textContent = info.source;
+      document.getElementById("meta-dimensions").textContent = info.dimensions;
+      document.getElementById("meta-channels").textContent = info.channels;
+      document.getElementById("meta-depth").textContent = info.depth;
+      metaGrid.classList.remove("hidden");
+    }
+
+    async function handleLoadResponse(res) {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Load failed.");
+      return data;
+    }
+
+    async function loadFromFile(file) {
+      setStatus("Loading image with OpenCV...");
+      resetConverted();
+
+      const form = new FormData();
+      form.append("file", file);
+
+      const res = await fetch("/api/upload", { method: "POST", body: form });
+      const data = await handleLoadResponse(res);
+
+      state.imageB64 = data.image_b64;
+      state.filename = file.name;
+      showOriginal(data.preview);
+      fillMeta(data.info);
+      btnConvert.disabled = false;
+      setStep(2);
+      setStatus(`Loaded ${file.name} (${data.info.dimensions})`, "success");
+    }
+
+    async function loadSample() {
+      setStatus("Generating sample image...");
+      resetConverted();
+
+      const res = await fetch("/api/sample", { method: "POST" });
+      const data = await handleLoadResponse(res);
+
+      state.imageB64 = data.image_b64;
+      state.filename = "sample.png";
+      showOriginal(data.preview);
+      fillMeta(data.info);
+      btnConvert.disabled = false;
+      setStep(2);
+      setStatus("Sample image ready. Choose a format and convert.", "success");
+    }
+
+    async function convertImage() {
+      if (!state.imageB64) return;
+
+      setStatus("Converting with OpenCV...");
+      btnConvert.disabled = true;
+
+      const res = await fetch("/api/convert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image_b64: state.imageB64,
+          format: formatSelect.value,
+          quality: Number(qualityRange.value),
+          filename: state.filename,
+        }),
+      });
+
+      const data = await res.json();
+      btnConvert.disabled = false;
+
+      if (!res.ok) {
+        setStatus(data.error || "Conversion failed.", "error");
+        return;
+      }
+
+      state.converted = data;
+      showConverted(data.preview);
+      btnDownload.classList.remove("hidden");
+      setStep(3);
+      setStatus(
+        `Converted to ${data.output_format.toUpperCase()} (${data.size_kb} KB). Ready to download.`,
+        "success"
+      );
+    }
+
+    async function downloadFile() {
+      if (!state.converted) return;
+
+      const res = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file_b64: state.converted.file_b64,
+          download_name: state.converted.download_name,
+          mime: state.converted.mime,
+        }),
+      });
+
+      if (!res.ok) {
+        setStatus("Download failed.", "error");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = state.converted.download_name;
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus(`Downloaded ${state.converted.download_name}`, "success");
+    }
+
+    dropzone.addEventListener("click", () => fileInput.click());
+
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      const file = e.dataTransfer.files[0];
+      if (file) loadFromFile(file).catch((err) => setStatus(err.message, "error"));
+    });
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (file) loadFromFile(file).catch((err) => setStatus(err.message, "error"));
+    });
+
+    btnSample.addEventListener("click", () => loadSample().catch((err) => setStatus(err.message, "error")));
+    btnConvert.addEventListener("click", () => convertImage().catch((err) => setStatus(err.message, "error")));
+    btnDownload.addEventListener("click", () => downloadFile().catch((err) => setStatus(err.message, "error")));
+
+    qualityRange.addEventListener("input", () => {
+      qualityLabel.textContent = qualityRange.value;
+    });
+
+    formatSelect.addEventListener("change", resetConverted);
+    qualityRange.addEventListener("change", resetConverted);
+  </script>
+</body>
+</html>
